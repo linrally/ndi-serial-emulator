@@ -2,12 +2,12 @@
 
 import serial
 
-port_name = '/dev/ttys015'  
+port_name = '/dev/ttys004'  
 ser = serial.Serial(port_name, baudrate=9600)
 
 while True:
     try:
-        ser.write("Hello".encode())
+        ser.write("INIT:E3A5\r".encode())
     except KeyboardInterrupt:
         print("Exiting...")
         break

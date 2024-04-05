@@ -2,6 +2,8 @@
 #include <cstring>
 #include <iostream>
 
+using namespace std;
+
 struct ndicapi;
 
 int main(int argc, char *argv[])
@@ -10,11 +12,14 @@ int main(int argc, char *argv[])
     ndicapi *device(nullptr);
     const char *name(nullptr);
 
-    if (argc > 1)
-        name = argv[1];
+    int result = ndiSerialProbe("/dev/ttys004", checkDSR); // error in ndiSerialOpen
+    cout << result << endl;
+
+    /*if (argc > 1)
+        name = argv[1]; 
     else
     {
-        const int MAX_SERIAL_PORTS = 20;
+        const int MAX_SERIAL_PORTS = 20; // Expanded since virtual ports are included
         for (int i = 0; i < MAX_SERIAL_PORTS; ++i)
         {
             name = ndiSerialDeviceName(i);
@@ -24,15 +29,17 @@ int main(int argc, char *argv[])
                 break;
             }
         }
-    }
+    }*/
 
-    if (name != nullptr)
+    /*if (name != nullptr)
     {
+        cout << "Flag2" <<endl;
         device = ndiOpenSerial(name);
     }
 
     if (device != nullptr)
     {
+        cout << "Flag3" << endl;
         const char *reply = ndiCommand(device, "INIT:");
         if (strncmp(reply, "ERROR", strlen(reply)) == 0 || ndiGetError(device) != NDI_OKAY)
         {
@@ -45,7 +52,7 @@ int main(int argc, char *argv[])
         // Add your own commands here!!!
 
         ndiCloseSerial(device);
-    }
+    }*/
 
     return EXIT_SUCCESS;
 }
