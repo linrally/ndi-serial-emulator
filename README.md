@@ -2,6 +2,11 @@
 A Python emulator for serial communication with the NDI Polaris Vega optical tracker. Designed for compatibility with the [NDI C API](https://github.com/PlusToolkit/ndicapi/tree/master).
 
 ## Usage (MacOS)
+Clone the git repository.
+```
+git clone https://github.com/linrally/ndi-serial-emulator.git
+```
+
 Create a virtual serial port using socat.
 
 ```
