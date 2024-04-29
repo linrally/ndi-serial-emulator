@@ -12,8 +12,7 @@ int main(int argc, char *argv[])
     ndicapi *device(nullptr);
     const char *name(nullptr);
 
-    int result = ndiSerialProbe("/dev/ttys004", checkDSR); // error in ndiSerialOpen
-    cout << result << endl;
+    name = "/dev/ttys006"; // temporary
 
     /*if (argc > 1)
         name = argv[1]; 
@@ -31,15 +30,14 @@ int main(int argc, char *argv[])
         }
     }*/
 
-    /*if (name != nullptr)
+    if (name != nullptr)
     {
-        cout << "Flag2" <<endl;
         device = ndiOpenSerial(name);
     }
 
+    
     if (device != nullptr)
     {
-        cout << "Flag3" << endl;
         const char *reply = ndiCommand(device, "INIT:");
         if (strncmp(reply, "ERROR", strlen(reply)) == 0 || ndiGetError(device) != NDI_OKAY)
         {
@@ -49,10 +47,11 @@ int main(int argc, char *argv[])
 
         reply = ndiCommand(device, "COMM:%d%03d%d", NDI_115200, NDI_8N1, NDI_NOHANDSHAKE);
 
+        cout << "Success!" << endl;
         // Add your own commands here!!!
 
         ndiCloseSerial(device);
-    }*/
+    }
 
     return EXIT_SUCCESS;
 }
