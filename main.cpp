@@ -1,57 +1,26 @@
-#include <ndicapi.h>
 #include <cstring>
 #include <iostream>
 
+#include <ndicapi.h>
+
+#include "ndi_utils.hpp"
+
 using namespace std;
 
-struct ndicapi;
+bool checkDSR = false; // Currently unused; needs implementation?
+std::string ndi_port("/dev/ttys006");
+std::string ndi_firmware_str;
+std::unique_ptr<ndicapi, decltype(&ndiCloseSerial)> ndi_device(nullptr, ndiCloseSerial);
+
+const std::vector<std::filesystem::path> ROM_FILES = {"ROMs/ST1257.rom", "ROMs/P1520.rom","ROMs/LCT576.rom"}; // 0 - subject tracker; 1 - pointer; 2 - stationary pointer
+std::vector<int> tracker_ports;
+std::vector<std::vector<std::array<float, 3>>> marker_data;
 
 int main(int argc, char *argv[])
 {
-    bool checkDSR = false;
-    ndicapi *device(nullptr);
-    const char *name(nullptr);
+    cout << initNDIDevice(ndi_device, ndi_port, ndi_firmware_str) << endl;
 
-    name = "/dev/ttys006"; // temporary
-
-    /*if (argc > 1)
-        name = argv[1]; 
-    else
-    {
-        const int MAX_SERIAL_PORTS = 20; // Expanded since virtual ports are included
-        for (int i = 0; i < MAX_SERIAL_PORTS; ++i)
-        {
-            name = ndiSerialDeviceName(i);
-            int result = ndiSerialProbe(name, checkDSR);
-            if (result == NDI_OKAY)
-            {
-                break;
-            }
-        }
-    }*/
-
-    if (name != nullptr)
-    {
-        device = ndiOpenSerial(name);
-    }
-
-    
-    if (device != nullptr)
-    {
-        const char *reply = ndiCommand(device, "INIT:");
-        if (strncmp(reply, "ERROR", strlen(reply)) == 0 || ndiGetError(device) != NDI_OKAY)
-        {
-            std::cerr << "Error when sending command: " << ndiErrorString(ndiGetError(device)) << std::endl;
-            return EXIT_FAILURE;
-        }
-
-        reply = ndiCommand(device, "COMM:%d%03d%d", NDI_115200, NDI_8N1, NDI_NOHANDSHAKE);
-
-        cout << "Success!" << endl;
-        // Add your own commands here!!!
-
-        ndiCloseSerial(device);
-    }
+    cout << initROMFiles(ndi_device, ROM_FILES, tracker_ports, marker_data) << endl;
 
     return EXIT_SUCCESS;
 }

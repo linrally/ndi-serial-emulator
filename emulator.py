@@ -1,15 +1,15 @@
-import serial
-
 # in terminal, create a virtual serial port pair
 # socat -d -d pty,raw,echo=1 pty,raw,echo=1
+
+import serial
 
 port_name = '/dev/ttys007'  
 ser = serial.Serial(port_name, baudrate=9600)
 
 print(f"Beginning connection on {port_name}")
 
-NDI_BAD_CRC = 4 # 0x?
-NDI_BAD_COMM = 6
+NDI_BAD_CRC = 0x04
+NDI_BAD_COMM = 0x06
 
 def calc_crc16(data, pu_crc16):
     ODD_PARITY = [0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0]
@@ -26,7 +26,7 @@ def COMM_helper(command):
     CONVERT_BAUD = [9600, 14400, 19200, 38400, 57600, 115200, 921600, 1228739]
     newspeed = 9600
     newdps = "8N1"
-    newhand = 0 # Handshaking ignored
+    newhand = 0 # Handshaking parsed, but not implemented
 
     if (command[5] >= '0' and command[5] <= '7') or command[5] == 'A':
       if command[5] != 'A':

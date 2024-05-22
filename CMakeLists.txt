@@ -3,7 +3,7 @@ set(CMAKE_CXX_STANDARD 17)
 project(ndi-serial-emulator)
 
 # Main executables
-add_executable(main main.cpp)
+add_executable(main main.cpp ndi_utils.hpp)
 set_property(TARGET main PROPERTY CXX_STANDARD 17)
 set_property(TARGET main PROPERTY CXX_STANDARD_REQUIRED ON)
 
