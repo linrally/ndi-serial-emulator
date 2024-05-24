@@ -74,7 +74,91 @@ def COMM_helper(command):
 
         return 0
     except:
+        set_error(NDI_BAD_COMM)
         return -1
+
+port_handles = {}
+
+# PHSR handle types
+NDI_ALL_HANDLES = 0x00
+NDI_STALE_HANDLES = 0x01
+NDI_UNINITIALIZED_HANDLES = 0x02
+NDI_UNENABLED_HANDLES = 0x03
+NDI_ENABLED_HANDLES = 0x04
+
+def get_handle_status(handle):
+    bits = 0
+    if handle.get("occupied"):
+        bits |= 1 << 11
+    if handle.get("initialized"):
+        bits |= 1 << 7
+    if handle.get("enabled"):
+        bits |= 1 << 6
+    return bits
+
+def PHSR_helper(command): # UNTESTED
+    reply_option = command[5:7]    
+
+    filtered_handles = {}
+    if reply_option == NDI_UNENABLED_HANDLES:
+        filtered_handles = {
+            key: value 
+            for key, value in port_handles.items() 
+            if value.get("occupied") and not (value.get("initialized") or value.get("enabled"))
+        }
+    elif reply_option == NDI_UNINITIALIZED_HANDLES:
+        filtered_handles = {
+            key: value 
+            for key, value in port_handles.items() 
+            if value.get("occupied") and value.get("initialized") and not value.get("enabled")
+        }
+    elif reply_option == NDI_ENABLED_HANDLES:
+        filtered_handles = {
+            key: value 
+            for key, value in port_handles.items() 
+            if value.get("enabled")
+        }
+        
+    reply = f"{len(filtered_handles):02X}"
+    for key, value in port_handles.items():
+       reply += f"{key:02X}{get_handle_status(value):03X}"
+
+    serial_write(append_crc16(reply))
+
+    return 0
+
+def PHRQ_helper(command):
+    device = command[5:13]
+    system_type = command[13]
+    tool_type = command[14]
+    port_number = command[15:17]
+    reserved =command[17:19]
+
+    i = 0x00
+    while i in port_handles:
+        i += 1
+
+    port_handles[i] = {
+        'occupied': False,
+        'initialized': False,
+        'enabled': False,
+    }
+
+    serial_write(append_crc16(f"{i:02X}"))
+
+    return 0
+
+def PVWR_helper(command):
+    return
+
+'''
+If a wireless tool port is the target of this command, the port becomes occupied when the first 64
+bytes of information is written. Any previous initialization for the port is lost.
+
+Read 
+3.6 Port Handles
+About Port Handles
+'''
 
 def set_error(errnum):
     ErrorCode = errnum
@@ -102,18 +186,25 @@ while True:
     for i, ch in enumerate(rec_command):
         calc_crc16(ord(ch), crc16)
     if(rec_crc16 != f"{crc16[0]:04X}"):
-        serial_write(append_crc16(f"ERROR:{set_error(NDI_BAD_CRC)}\r"))
+        set_error(NDI_BAD_CRC)
+        serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
         continue
 
-    command, args = rec_command.split(":") # Args are unused
+    code, args = rec_command.split(":") # Args are unused
 
-    if command == "COMM":
+    if code == "COMM":
         if(COMM_helper(rec_command) != 0):
-            serial_write(append_crc16(f"ERROR:{set_error(NDI_BAD_COMM)}\r"))
+            serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
             continue
-    elif command == "VER": # Ignore for now
-       continue 
-    elif command == "PHSR": 
+    elif code == "PHSR": 
+       if(PHSR_helper(rec_command) != 0):
+            serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
+            continue
+    elif code == "PHRQ":
+       if(PHRQ_helper(rec_command) != 0):
+            serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
+            continue
+
        # TODO: Implement
        # https://duke.app.box.com/file/1464916324405?s=13proh0ljki05ap7mm8vqi7mzkdvl8li
        # https://duke.app.box.com/file/1464916324405?s=13proh0ljki05ap7mm8vqi7mzkdvl8li
