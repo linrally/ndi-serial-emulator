@@ -97,7 +97,7 @@ def get_handle_status(handle):
     return bits
 
 def PHSR_helper(command): # UNTESTED
-    reply_option = command[5:7]    
+    reply_option = int(command[5:7], 16)
 
     filtered_handles = {}
     if reply_option == NDI_UNENABLED_HANDLES:
@@ -120,7 +120,7 @@ def PHSR_helper(command): # UNTESTED
         }
         
     reply = f"{len(filtered_handles):02X}"
-    for key, value in port_handles.items():
+    for key, value in filtered_handles.items():
        reply += f"{key:02X}{get_handle_status(value):03X}"
 
     serial_write(append_crc16(reply))
@@ -142,6 +142,7 @@ def PHRQ_helper(command):
         'occupied': False,
         'initialized': False,
         'enabled': False,
+        'rom' : bytearray(b'\x00' * 1024) # 1 kB
     }
 
     serial_write(append_crc16(f"{i:02X}"))
@@ -149,7 +150,17 @@ def PHRQ_helper(command):
     return 0
 
 def PVWR_helper(command):
-    return
+    port_handle = int(command[5:7], 16)
+    address = int(command[7:11], 16)
+    data = bytearray.fromhex(command[11:11+128])
+    
+    handle = port_handles[port_handle]
+    handle['rom'][address:address+64] = data # 64 bytes of data
+    handle['occupied'] = True    
+
+    serial_write(append_crc16("OKAY"))
+
+    return 0
 
 '''
 If a wireless tool port is the target of this command, the port becomes occupied when the first 64
@@ -202,6 +213,10 @@ while True:
             continue
     elif code == "PHRQ":
        if(PHRQ_helper(rec_command) != 0):
+            serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
+            continue
+    elif code == "PVWR":
+       if(PVWR_helper(rec_command) != 0):
             serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
             continue
 
