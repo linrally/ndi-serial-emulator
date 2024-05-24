@@ -8,7 +8,7 @@
 using namespace std;
 
 bool checkDSR = false; // Currently unused; needs implementation?
-std::string ndi_port("/dev/ttys006");
+std::string ndi_port("/dev/ttys022");
 std::string ndi_firmware_str;
 std::unique_ptr<ndicapi, decltype(&ndiCloseSerial)> ndi_device(nullptr, ndiCloseSerial);
 

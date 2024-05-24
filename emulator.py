@@ -1,12 +1,14 @@
-# in terminal, create a virtual serial port pair
+# In terminal, create a virtual serial port pair
 # socat -d -d pty,raw,echo=1 pty,raw,echo=1
 
 import serial
 
-port_name = '/dev/ttys007'  
+port_name = '/dev/ttys021'  
 ser = serial.Serial(port_name, baudrate=9600)
 
 print(f"Beginning connection on {port_name}")
+
+ErrorCode = 0
 
 NDI_BAD_CRC = 0x04
 NDI_BAD_COMM = 0x06
@@ -21,6 +23,12 @@ def calc_crc16(data, pu_crc16):
     pu_crc16[0] ^= data
     data <<= 1
     pu_crc16[0] ^= data
+
+def append_crc16(reply):
+    crc16 = [0]
+    for i, ch in enumerate(reply): 
+        calc_crc16(ord(ch), crc16)
+    return f"{reply}{crc16[0]:04X}\r"
 
 def COMM_helper(command):
     CONVERT_BAUD = [9600, 14400, 19200, 38400, 57600, 115200, 921600, 1228739]
@@ -69,11 +77,8 @@ def COMM_helper(command):
         return -1
 
 def set_error(errnum):
-    reply = f"ERROR{errnum}"
-    crc16 = [0]
-    for i, ch in enumerate(reply): # Might create a separate function to apply CRC to all replies
-        calc_crc16(ord(ch), crc16)
-    return f"ERROR{errnum}{crc16[0]:04X}\r" 
+    ErrorCode = errnum
+    return errnum; 
 
 def serial_write(response):
     ser.write(response.encode())
@@ -97,16 +102,22 @@ while True:
     for i, ch in enumerate(rec_command):
         calc_crc16(ord(ch), crc16)
     if(rec_crc16 != f"{crc16[0]:04X}"):
-        serial_write(set_error(NDI_BAD_CRC)) 
+        serial_write(append_crc16(f"ERROR:{set_error(NDI_BAD_CRC)}\r"))
         continue
 
     command, args = rec_command.split(":") # Args are unused
 
     if command == "COMM":
         if(COMM_helper(rec_command) != 0):
-            serial_write(set_error(NDI_BAD_COMM))
+            serial_write(append_crc16(f"ERROR:{set_error(NDI_BAD_COMM)}\r"))
             continue
-    #elif command == "ECHO":
+    elif command == "VER": # Ignore for now
+       continue 
+    elif command == "PHSR": 
+       # TODO: Implement
+       # https://duke.app.box.com/file/1464916324405?s=13proh0ljki05ap7mm8vqi7mzkdvl8li
+       # https://duke.app.box.com/file/1464916324405?s=13proh0ljki05ap7mm8vqi7mzkdvl8li
+       continue
 
 # port dictionary/array
 # find the lowest available port not in use
@@ -121,3 +132,6 @@ while True:
 # ndiPENA ?
 
 # caching in BX
+
+
+# get port, put rom file into it, initialize it, 
