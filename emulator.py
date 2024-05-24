@@ -156,20 +156,11 @@ def PVWR_helper(command):
     
     handle = port_handles[port_handle]
     handle['rom'][address:address+64] = data # 64 bytes of data
-    handle['occupied'] = True    
+    handle['occupied'] = True # A port becomes occupied after first 64 bytes of data are written
 
     serial_write(append_crc16("OKAY"))
 
     return 0
-
-'''
-If a wireless tool port is the target of this command, the port becomes occupied when the first 64
-bytes of information is written. Any previous initialization for the port is lost.
-
-Read 
-3.6 Port Handles
-About Port Handles
-'''
 
 def set_error(errnum):
     ErrorCode = errnum
@@ -199,45 +190,18 @@ while True:
     if(rec_crc16 != f"{crc16[0]:04X}"):
         set_error(NDI_BAD_CRC)
         serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
-        continue
 
     code, args = rec_command.split(":") # Args are unused
 
     if code == "COMM":
         if(COMM_helper(rec_command) != 0):
             serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
-            continue
     elif code == "PHSR": 
        if(PHSR_helper(rec_command) != 0):
             serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
-            continue
     elif code == "PHRQ":
        if(PHRQ_helper(rec_command) != 0):
             serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
-            continue
     elif code == "PVWR":
        if(PVWR_helper(rec_command) != 0):
             serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
-            continue
-
-       # TODO: Implement
-       # https://duke.app.box.com/file/1464916324405?s=13proh0ljki05ap7mm8vqi7mzkdvl8li
-       # https://duke.app.box.com/file/1464916324405?s=13proh0ljki05ap7mm8vqi7mzkdvl8li
-       continue
-
-# port dictionary/array
-# find the lowest available port not in use
-# store ROM data in a string
-
-# BX transform return identity matrix 
-# #define ndiPHSR(p,mode) ndiCommand((p),"PHSR:%02X",(mode))
-
-# enabled ports [false, false, false. ...]
-
-# ndiPINIT
-# ndiPENA ?
-
-# caching in BX
-
-
-# get port, put rom file into it, initialize it, 
