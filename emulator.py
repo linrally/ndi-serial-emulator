@@ -100,13 +100,13 @@ def PHSR_helper(command): # UNTESTED
     reply_option = int(command[5:7], 16)
 
     filtered_handles = {}
-    if reply_option == NDI_UNENABLED_HANDLES:
+    if reply_option == NDI_UNINITIALIZED_HANDLES:
         filtered_handles = {
             key: value 
             for key, value in port_handles.items() 
             if value.get("occupied") and not (value.get("initialized") or value.get("enabled"))
         }
-    elif reply_option == NDI_UNINITIALIZED_HANDLES:
+    elif reply_option == NDI_UNENABLED_HANDLES:
         filtered_handles = {
             key: value 
             for key, value in port_handles.items() 
@@ -162,6 +162,27 @@ def PVWR_helper(command):
 
     return 0
 
+def PINIT_helper(command):
+    port_handle = int(command[6:8], 16)
+    
+    handle = port_handles[port_handle]
+    handle['initialized'] = True
+
+    serial_write(append_crc16("OKAY"))  
+
+    return 0
+
+def PENA_helper(command):
+    port_handle = int(command[5:7], 16)
+    tracking_priority = command[7]
+
+    handle = port_handles[port_handle]
+    handle['enabled'] = True
+
+    serial_write(append_crc16("OKAY"))
+
+    return 0
+
 def set_error(errnum):
     ErrorCode = errnum
     return errnum; 
@@ -197,11 +218,22 @@ while True:
         if(COMM_helper(rec_command) != 0):
             serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
     elif code == "PHSR": 
-       if(PHSR_helper(rec_command) != 0):
+        if(PHSR_helper(rec_command) != 0):
             serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
     elif code == "PHRQ":
-       if(PHRQ_helper(rec_command) != 0):
+        if(PHRQ_helper(rec_command) != 0):
             serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
     elif code == "PVWR":
-       if(PVWR_helper(rec_command) != 0):
+        if(PVWR_helper(rec_command) != 0):
             serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
+    elif code == "PENA":
+        if(PENA_helper(rec_command) != 0):
+            serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
+    elif code == "PINIT":
+        if(PINIT_helper(rec_command) != 0):
+            serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
+
+# TODO: 
+# Test ROM data to see if it is actually being written at the correct address
+# (low prio) Clean up append_crc16 function
+# what if error but old errorcode
