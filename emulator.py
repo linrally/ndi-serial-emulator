@@ -1,5 +1,12 @@
+# USAGE: 
 # In terminal, create a virtual serial port pair
 # socat -d -d pty,raw,echo=1 pty,raw,echo=1
+
+# TODO: 
+# (low prio) Clean up append_crc16 function
+# what if error but old errorcode
+# 0x0D, 0x0E, 0x0F errors (port handles)
+# 0x02, 0x03 errors (general)
 
 import serial
 
@@ -10,6 +17,7 @@ print(f"Beginning connection on {port_name}")
 
 ErrorCode = 0
 
+NDI_INVALID = 0x01
 NDI_BAD_CRC = 0x04
 NDI_BAD_COMM = 0x06
 
@@ -232,8 +240,6 @@ while True:
     elif code == "PINIT":
         if(PINIT_helper(rec_command) != 0):
             serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
-
-# TODO: 
-# Test ROM data to see if it is actually being written at the correct address
-# (low prio) Clean up append_crc16 function
-# what if error but old errorcode
+    else:
+        set_error(NDI_INVALID)
+        serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
