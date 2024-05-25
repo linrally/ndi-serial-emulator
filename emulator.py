@@ -1,15 +1,25 @@
-import serial
-
-# in terminal, create a virtual serial port pair
+# USAGE: 
+# In terminal, create a virtual serial port pair
 # socat -d -d pty,raw,echo=1 pty,raw,echo=1
 
-port_name = '/dev/ttys007'  
+# TODO: 
+# (low prio) Clean up append_crc16 function
+# what if error but old errorcode
+# 0x0D, 0x0E, 0x0F errors (port handles)
+# 0x02, 0x03 errors (general)
+
+import serial
+
+port_name = '/dev/ttys021'  
 ser = serial.Serial(port_name, baudrate=9600)
 
 print(f"Beginning connection on {port_name}")
 
-NDI_BAD_CRC = 4 # 0x?
-NDI_BAD_COMM = 6
+ErrorCode = 0
+
+NDI_INVALID = 0x01
+NDI_BAD_CRC = 0x04
+NDI_BAD_COMM = 0x06
 
 def calc_crc16(data, pu_crc16):
     ODD_PARITY = [0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0]
@@ -22,11 +32,17 @@ def calc_crc16(data, pu_crc16):
     data <<= 1
     pu_crc16[0] ^= data
 
+def append_crc16(reply):
+    crc16 = [0]
+    for i, ch in enumerate(reply): 
+        calc_crc16(ord(ch), crc16)
+    return f"{reply}{crc16[0]:04X}\r"
+
 def COMM_helper(command):
     CONVERT_BAUD = [9600, 14400, 19200, 38400, 57600, 115200, 921600, 1228739]
     newspeed = 9600
     newdps = "8N1"
-    newhand = 0 # Handshaking ignored
+    newhand = 0 # Handshaking parsed, but not implemented
 
     if (command[5] >= '0' and command[5] <= '7') or command[5] == 'A':
       if command[5] != 'A':
@@ -66,14 +82,118 @@ def COMM_helper(command):
 
         return 0
     except:
+        set_error(NDI_BAD_COMM)
         return -1
 
+port_handles = {}
+
+# PHSR handle types
+NDI_ALL_HANDLES = 0x00
+NDI_STALE_HANDLES = 0x01
+NDI_UNINITIALIZED_HANDLES = 0x02
+NDI_UNENABLED_HANDLES = 0x03
+NDI_ENABLED_HANDLES = 0x04
+
+def get_handle_status(handle):
+    bits = 0
+    if handle.get("occupied"):
+        bits |= 1 << 11
+    if handle.get("initialized"):
+        bits |= 1 << 7
+    if handle.get("enabled"):
+        bits |= 1 << 6
+    return bits
+
+def PHSR_helper(command): # UNTESTED
+    reply_option = int(command[5:7], 16)
+
+    filtered_handles = {}
+    if reply_option == NDI_UNINITIALIZED_HANDLES:
+        filtered_handles = {
+            key: value 
+            for key, value in port_handles.items() 
+            if value.get("occupied") and not (value.get("initialized") or value.get("enabled"))
+        }
+    elif reply_option == NDI_UNENABLED_HANDLES:
+        filtered_handles = {
+            key: value 
+            for key, value in port_handles.items() 
+            if value.get("occupied") and value.get("initialized") and not value.get("enabled")
+        }
+    elif reply_option == NDI_ENABLED_HANDLES:
+        filtered_handles = {
+            key: value 
+            for key, value in port_handles.items() 
+            if value.get("enabled")
+        }
+        
+    reply = f"{len(filtered_handles):02X}"
+    for key, value in filtered_handles.items():
+       reply += f"{key:02X}{get_handle_status(value):03X}"
+
+    serial_write(append_crc16(reply))
+
+    return 0
+
+def PHRQ_helper(command):
+    device = command[5:13]
+    system_type = command[13]
+    tool_type = command[14]
+    port_number = command[15:17]
+    reserved =command[17:19]
+
+    i = 0x00
+    while i in port_handles:
+        i += 1
+
+    port_handles[i] = {
+        'occupied': False,
+        'initialized': False,
+        'enabled': False,
+        'rom' : bytearray(b'\x00' * 1024) # 1 kB
+    }
+
+    serial_write(append_crc16(f"{i:02X}"))
+
+    return 0
+
+def PVWR_helper(command):
+    port_handle = int(command[5:7], 16)
+    address = int(command[7:11], 16)
+    data = bytearray.fromhex(command[11:11+128])
+    
+    handle = port_handles[port_handle]
+    handle['rom'][address:address+64] = data # 64 bytes of data
+    handle['occupied'] = True # A port becomes occupied after first 64 bytes of data are written
+
+    serial_write(append_crc16("OKAY"))
+
+    return 0
+
+def PINIT_helper(command):
+    port_handle = int(command[6:8], 16)
+    
+    handle = port_handles[port_handle]
+    handle['initialized'] = True
+
+    serial_write(append_crc16("OKAY"))  
+
+    return 0
+
+def PENA_helper(command):
+    port_handle = int(command[5:7], 16)
+    tracking_priority = command[7]
+
+    handle = port_handles[port_handle]
+    handle['enabled'] = True
+
+    serial_write(append_crc16("OKAY"))
+
+    return 0
+
 def set_error(errnum):
-    reply = f"ERROR{errnum}"
-    crc16 = [0]
-    for i, ch in enumerate(reply): # Might create a separate function to apply CRC to all replies
-        calc_crc16(ord(ch), crc16)
-    return f"ERROR{errnum}{crc16[0]:04X}\r" 
+    ErrorCode = errnum
+    return errnum; 
 
 def serial_write(response):
     ser.write(response.encode())
@@ -97,27 +217,29 @@ while True:
     for i, ch in enumerate(rec_command):
         calc_crc16(ord(ch), crc16)
     if(rec_crc16 != f"{crc16[0]:04X}"):
-        serial_write(set_error(NDI_BAD_CRC)) 
-        continue
+        set_error(NDI_BAD_CRC)
+        serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
 
-    command, args = rec_command.split(":") # Args are unused
+    code, args = rec_command.split(":") # Args are unused
 
-    if command == "COMM":
+    if code == "COMM":
         if(COMM_helper(rec_command) != 0):
-            serial_write(set_error(NDI_BAD_COMM))
-            continue
-    #elif command == "ECHO":
-
-# port dictionary/array
-# find the lowest available port not in use
-# store ROM data in a string
-
-# BX transform return identity matrix 
-# #define ndiPHSR(p,mode) ndiCommand((p),"PHSR:%02X",(mode))
-
-# enabled ports [false, false, false. ...]
-
-# ndiPINIT
-# ndiPENA ?
-
-# caching in BX
+            serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
+    elif code == "PHSR": 
+        if(PHSR_helper(rec_command) != 0):
+            serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
+    elif code == "PHRQ":
+        if(PHRQ_helper(rec_command) != 0):
+            serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
+    elif code == "PVWR":
+        if(PVWR_helper(rec_command) != 0):
+            serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
+    elif code == "PENA":
+        if(PENA_helper(rec_command) != 0):
+            serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
+    elif code == "PINIT":
+        if(PINIT_helper(rec_command) != 0):
+            serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
+    else:
+        set_error(NDI_INVALID)
+        serial_write(append_crc16(f"ERROR:{ErrorCode}\r"))
