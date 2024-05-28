@@ -95,12 +95,11 @@ def COMM_helper(command):
 
 port_handles = {}
 
-# PHSR handle types
-NDI_ALL_HANDLES = 0x00
-NDI_STALE_HANDLES = 0x01
-NDI_UNINITIALIZED_HANDLES = 0x02
-NDI_UNENABLED_HANDLES = 0x03
-NDI_ENABLED_HANDLES = 0x04
+NDI_ALL_HANDLES = 0x00              # return all handles
+NDI_STALE_HANDLES = 0x01            # only handles waiting to be freed
+NDI_UNINITIALIZED_HANDLES = 0x02    # handles needing initialization
+NDI_UNENABLED_HANDLES = 0x03        # handles needing enabling
+NDI_ENABLED_HANDLES = 0x04          # handles that are enabled
 
 def get_port_status(handle):
     bits = 0
@@ -209,13 +208,13 @@ def TSTART_helper(command):
 
     return 0
 
-NDI_XFORMS_AND_STATUS = 0x0001 # transforms and status
-NDI_ADDITIONAL_INFO = 0x0002 # additional tool transform info
-NDI_SINGLE_STRAY = 0x0004 # stray active marker reporting
-NDI_FRAME_NUMBER = 0x0008 # frame number for each tool
-NDI_PASSIVE = 0x8000 # report passive tool information
-NDI_PASSIVE_EXTRA = 0x2000  # add 6 extra passive tools
-NDI_PASSIVE_STRAY = 0x1000 # stray passive marker reporting 
+NDI_XFORMS_AND_STATUS = 0x0001  # transforms and status
+NDI_ADDITIONAL_INFO = 0x0002    # additional tool transform info
+NDI_SINGLE_STRAY = 0x0004       # stray active marker reporting
+NDI_FRAME_NUMBER = 0x0008       # frame number for each tool
+NDI_PASSIVE = 0x8000            # report passive tool information
+NDI_PASSIVE_EXTRA = 0x2000      # add 6 extra passive tools
+NDI_PASSIVE_STRAY = 0x1000      # stray passive marker reporting 
 
 def BX_helper(command): 
     reply_option = int(command[3:7], 16) if len(command) >= 7 else NDI_XFORMS_AND_STATUS
