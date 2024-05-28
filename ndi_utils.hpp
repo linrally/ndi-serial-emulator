@@ -12,7 +12,7 @@
 #include <ndicapi.h>
 
 #define ROM_ADDR_NUM_MARKERS 28
-#define ROM_ADDR_MARKER_XYZ_BEGIN 72
+#define ROM_ADDR_MARKER_XYZ_BEGIN 72 
 
 // This implementation creates tasks and continuously polls each one
 std::string ParallelProbe(bool checkDSR, int maxPortNum, std::vector<std::future<std::string>>& probeTasks)

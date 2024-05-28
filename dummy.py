@@ -6,10 +6,7 @@ port_name = '/dev/ttys004'
 ser = serial.Serial(port_name, baudrate=9600)
 
 while True:
-    try:
-        ser.write("INIT:E3A5\r".encode())
-    except KeyboardInterrupt:
-        print("Exiting...")
-        break
-
+    data = ser.read_until(b'\r').decode().strip()
+    print(data)
+    
 ser.close()
