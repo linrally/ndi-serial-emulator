@@ -7,7 +7,6 @@
 # what if error but old errorcode
 # 0x0D, 0x0E, 0x0F errors (port handles)
 # 0x02, 0x03 errors (general)
-# TSTART, TX, BX https://github.com/rajkundu/cvn-data-collection-app/blob/main/utils.hpp
 # serial timeout with error
 
 import serial
