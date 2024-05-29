@@ -12,14 +12,19 @@
 import serial
 import time
 import struct
+import argparse
 
-port_name = '/dev/ttys035'  
-ser = serial.Serial(port_name, baudrate=9600)
+parser = argparse.ArgumentParser(description='Emulator script for serial communication.')
+parser.add_argument('--port', required=True, type=str, help='name of the port to connect to')
+args = parser.parse_args()
+port_name = args.port # /dev/ttys035
 
+ser = serial.Serial(port_name, baudrate=9600) 
 print(f"Beginning connection on {port_name}")
 
 ErrorCode = 0
 
+# ERROR CODES
 NDI_INVALID = 0x01
 NDI_BAD_CRC = 0x04
 NDI_BAD_COMM = 0x06
@@ -94,6 +99,7 @@ def COMM_helper(command):
 
 port_handles = {}
 
+# PHRQ REPLY OPTIONS
 NDI_ALL_HANDLES = 0x00              # return all handles
 NDI_STALE_HANDLES = 0x01            # only handles waiting to be freed
 NDI_UNINITIALIZED_HANDLES = 0x02    # handles needing initialization
@@ -207,6 +213,7 @@ def TSTART_helper(command):
 
     return 0
 
+# BX REPLY OPTIONS
 NDI_XFORMS_AND_STATUS = 0x0001  # transforms and status
 NDI_ADDITIONAL_INFO = 0x0002    # additional tool transform info
 NDI_SINGLE_STRAY = 0x0004       # stray active marker reporting
@@ -282,7 +289,7 @@ while True:
 
     frame_number = int((time.time() - start_time) * 60)
     
-    # Initialization
+    # Initialization (probably needs to be modified at some point to remove hardcoding)
     if data == "INIT:E3A5":
         serial_write("OKAYA896\r")
         continue

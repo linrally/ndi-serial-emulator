@@ -21,9 +21,13 @@ static const char* NDI_CAPTURE_STRING = "BX:0801";
 
 int main(int argc, char *argv[])
 {
-    cout << initNDIDevice(ndi_device, ndi_port, ndi_firmware_str) << endl;
+    if(initNDIDevice(ndi_device, ndi_port, ndi_firmware_str)){
+        cout << "Device Initialized" << endl;
+    }
 
-    cout << initROMFiles(ndi_device, ROM_FILES, tracker_ports, marker_data) << endl;
+    if (initROMFiles(ndi_device, ROM_FILES, tracker_ports, marker_data)){
+        cout << "ROM Files Initialized" << endl;
+    }
 
     ndicapi* device = ndi_device.get();
 
