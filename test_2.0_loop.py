@@ -14,21 +14,21 @@ ser = serial.Serial("/dev/cu.usbserial-AB0NSEDF", baudrate=9600, bytesize=8, par
 
 # translated from C code at https://stackoverflow.com/a/68095008
 def calc_crc16_int(bytedata):
-	crc = 0x0000
-	for i in (range(0, len(bytedata))):
-		crc ^= bytedata[i]
-		for k in range(0, 8):
-			crc = (crc >> 1) ^ 0xa001 if crc & 1 else crc >> 1
-	return crc
+    crc = 0x0000
+    for i in (range(0, len(bytedata))):
+        crc ^= bytedata[i]
+        for k in range(0, 8):
+            crc = (crc >> 1) ^ 0xa001 if crc & 1 else crc >> 1
+    return crc
 
 def calc_crc16_str(data):
-	if isinstance(data, bytes) or isinstance(data, bytearray):
-		bytedata = data
-	elif isinstance(data, str):
-		bytedata = data.encode("utf-8", errors="strict")
-	else:
-		raise TypeError("Expected data argument to be of type bytes, bytearray, or str!")
-	return calc_crc16_int(bytedata).to_bytes(2, byteorder="big").hex().upper()
+    if isinstance(data, bytes) or isinstance(data, bytearray):
+        bytedata = data
+    elif isinstance(data, str):
+        bytedata = data.encode("utf-8", errors="strict")
+    else:
+        raise TypeError("Expected data argument to be of type bytes, bytearray, or str!")
+    return calc_crc16_int(bytedata).to_bytes(2, byteorder="big").hex().upper()
 
 VER_STR_CUSTOM = \
 """Polaris Vicra Control Firmware
@@ -171,118 +171,119 @@ rx_bytes = bytearray()
 rx_print_last = None
 
 def parse_rx(rx_bytes):
-	if not rx_bytes.endswith(b'\r'):
-		raise RuntimeError("Expected \r at end of rx!")
+    if not rx_bytes.endswith(b'\r'):
+        raise RuntimeError("Expected \r at end of rx!")
 
-	# Parse command
-	command_match = re.match(rb'^[A-Za-z]+[: ]', rx_bytes)
-	if command_match is None:
-		raise ValueError(f"Error parsing command from '{rx_bytes}'!")
-	# match span includes <:>/<space>
-	separator_idx = command_match.end()-1
-	separator = rx_bytes[separator_idx:separator_idx+1] # get as bytes object
-	command = rx_bytes[:separator_idx].decode(encoding="utf-8", errors="strict")
-	print(type(separator))
+    # Parse command
+    command_match = re.match(rb'^[A-Za-z]+[: ]', rx_bytes)
+    if command_match is None:
+        raise ValueError(f"Error parsing command from '{rx_bytes}'!")
+    # match span includes <:>/<space>
+    separator_idx = command_match.end()-1
+    separator = rx_bytes[separator_idx:separator_idx+1] # get as bytes object
+    command = rx_bytes[:separator_idx].decode(encoding="utf-8", errors="strict")
+    print(type(separator))
 
-	if separator == b':': # end = 4-byte CRC (ASCII) + 1-byte \r
-		body_end_idx = len(rx_bytes) - 5
-		rx_body_bytes, rx_crc_ascii = rx_bytes[:body_end_idx], rx_bytes[body_end_idx:-1]
-		rx_crc_int = int(rx_crc_ascii, 16)
-		calc_crc_int = calc_crc16_int(rx_body_bytes)
-		if rx_crc_int != calc_crc_int:
-			raise ValueError(f"Received CRC 0x{rx_crc_int:X} doesn't match calculated CRC 0x{calc_crc_int:X} for message \"{rx_bytes}\"")
-	elif separator == b' ': # end = 1-byte \r (NO CRC)
-		body_end_idx = len(rx_bytes) - 1
-	else:
-		raise RuntimeError(f"Expected separator to either be ':' or ' ', but got '{separator}'!")
+    if separator == b':': # end = 4-byte CRC (ASCII) + 1-byte \r
+        body_end_idx = len(rx_bytes) - 5
+        rx_body_bytes, rx_crc_ascii = rx_bytes[:body_end_idx], rx_bytes[body_end_idx:-1]
+        rx_crc_int = int(rx_crc_ascii, 16)
+        calc_crc_int = calc_crc16_int(rx_body_bytes)
+        if rx_crc_int != calc_crc_int:
+            raise ValueError(f"Received CRC 0x{rx_crc_int:X} doesn't match calculated CRC 0x{calc_crc_int:X} for message \"{rx_bytes}\"")
+    elif separator == b' ': # end = 1-byte \r (NO CRC)
+        body_end_idx = len(rx_bytes) - 1
+    else:
+        raise RuntimeError(f"Expected separator to either be ':' or ' ', but got '{separator}'!")
 
-	args = rx_bytes[separator_idx + 1:body_end_idx].decode(encoding="utf-8", errors="strict")
+    args = rx_bytes[separator_idx + 1:body_end_idx].decode(encoding="utf-8", errors="strict")
 
-	return command, args, rx_crc_int
+    return command, args, rx_crc_int
 
 def send_reply(str_to_send, append_crc=True, append_cr=True, debug=False):
-	tx_bytes = str_to_send.encode()
-	if append_crc:
-		tx_bytes += calc_crc16_str(tx_bytes).encode()
-	if append_cr:
-		tx_bytes += "\r".encode()
+    tx_bytes = str_to_send.encode()
+    if append_crc:
+        tx_bytes += calc_crc16_str(tx_bytes).encode()
+    if append_cr:
+        tx_bytes += "\r".encode()
 
-	ser.write(tx_bytes)
-	if debug:
-		print(f"Sent: {tx_bytes}")
-	
-	# clear rx
-	global rx_bytes
-	rx_bytes.clear()
+    ser.write(tx_bytes)
+    if debug:
+        print(f"Sent: {tx_bytes}")
+    
+    # clear rx
+    rx_bytes.clear()
 
 def reset():
-	# clear tx
-	ser.flush()
-	time.sleep(0.01 * ser.out_waiting)
+    # clear tx
+    ser.flush()
+    time.sleep(0.01 * ser.out_waiting)
 
-	# reset to 9600 8N1
-	ser.baudrate = 9600
-	ser.bytesize = serial.EIGHTBITS
-	ser.parity = serial.PARITY_NONE
-	ser.stopbits = serial.STOPBITS_ONE
+    # reset to 9600 8N1
+    ser.baudrate = 9600
+    ser.bytesize = serial.EIGHTBITS
+    ser.parity = serial.PARITY_NONE
+    ser.stopbits = serial.STOPBITS_ONE
 
-	# clear rx
-	rx_bytes.clear()
-	global rx_print_last
-	rx_print_last = None
+    # clear rx
+    rx_bytes.clear()
+    global rx_print_last
+    rx_print_last = None
 
 try:
-	while True:
-		while ser.in_waiting > 0:
-			b = ser.read(1)
-			rx_bytes.extend(b)
+    while True:
+        while ser.in_waiting > 0:
+            b = ser.read(1)
+            rx_bytes.extend(b)
 
-			# printing
-			if b == b'\0':
-				print("\\0", end="\n")
-			elif b == b'\r':
-				print("\\r", end="\n")
-			else:
-				try:
-					pr = b.decode(encoding="utf-8", errors="strict")
-				except UnicodeDecodeError:
-					pr = "[0x" + b.hex() + "]"
-				print(pr, end="")
+            # printing
+            if b == b'\0':
+                print("\\0", end="\n")
+            elif b == b'\r':
+                print("\\r", end="\n")
+            else:
+                try:
+                    pr = b.decode(encoding="utf-8", errors="strict")
+                except UnicodeDecodeError:
+                    pr = "[0x" + b.hex() + "]"
+                print(pr, end="")
 
-		# Serial break
-		if rx_bytes == b'\0': # TODO: Will a null byte ever be sent NOT as a serial break?
-			print("Received serial break (NULL), resetting...")
-			reset()
-			send_reply("RESET", debug=True)
-			continue
+        # Serial break
+        if rx_bytes == b'\0': # TODO: Will a null byte ever be sent NOT as a serial break?
+            print("Received serial break (NULL), resetting...")
+            reset()
+            send_reply("RESET", debug=True)
+            continue
 
-		if len(rx_bytes) > 0 and rx_bytes.endswith(b'\r'):
-			command, args, crc_int = parse_rx(rx_bytes)
-
-			if command == "INIT":
-				send_reply("OKAY", debug=True)
-			elif command == "VER":
-				send_reply(VER_STR_CUSTOM, debug=True)
-			elif command == "COMM" and args == "60000":
-				print(">>> CHANGING BAUD RATE <<<")
-				send_reply("OKAY", debug=True)
-				time.sleep(0.05) # wait for OKAY reply to finish sending @ 9600 baud rate
-				ser.baudrate = 921600
-			elif command == "APIREV":
-				send_reply(APIREV_STR, debug=True)
-			elif command == "GET":
-				search_key = rx_bytes[4:-5].decode(encoding="utf-8", errors="strict") #TODO: improve this arg parsing
-				matching_attrs = [line for line in GET_ATTRS.split("\n") if re.search(search_key, line.split("=")[0]) is not None]
-				if len(matching_attrs) == 0:
-					raise RuntimeError() # TODO: send error back
-				send_reply("\n".join(matching_attrs))
-			elif command == "SFLIST" and args == "02": # Supported Features List
-				send_reply("6", debug=True) # Option 2 -> # wireless tool ports -> 6
-			elif command == "TSTART":
-				send_reply("OKAY", debug=True)
-			elif command == "TSTOP":
-				send_reply("OKAY", debug=True)
-			else:
-				raise NotImplementedError(f"Received unrecognized command: '{command}'")
+        if rx_bytes.endswith(b'\r'):
+            command, args, crc_int = parse_rx(rx_bytes)
+            
+            if command == "INIT":
+                send_reply("OKAY", debug=True)
+            elif command == "VER":
+                send_reply(VER_STR_CUSTOM, debug=True)
+            elif command == "COMM" and args == "60000":
+                print(">>> CHANGING BAUD RATE <<<")
+                send_reply("OKAY", debug=True)
+                time.sleep(0.05) # wait for OKAY reply to finish sending @ 9600 baud rate
+                ser.baudrate = 921600
+            elif command == "APIREV":
+                send_reply(APIREV_STR, debug=True)
+            elif command == "GET":
+                search_key = rx_bytes[4:-5].decode(encoding="utf-8", errors="strict") #TODO: improve this arg parsing
+                matching_attrs = [line for line in GET_ATTRS.split("\n") if re.search(search_key, line.split("=")[0]) is not None]
+                if len(matching_attrs) == 0:
+                    raise RuntimeError() # TODO: send error back
+                send_reply("\n".join(matching_attrs))
+            elif command == "SFLIST" and args == "02": # Supported Features List
+                send_reply("6", debug=True) # Option 2 -> # wireless tool ports -> 6
+            elif command == "TSTART":
+                send_reply("OKAY", debug=True)
+            elif command == "TSTOP":
+                send_reply("OKAY", debug=True)
+            elif command == "BX":
+                pass
+            else:
+                raise NotImplementedError(f"Received unrecognized command: '{command}'")
 except KeyboardInterrupt:
-	pass
+    pass
