@@ -1,8 +1,9 @@
 class BaseCommand:
-    def __init__(self, ser, err, prt):
+    def __init__(self, ser, err, prt, frm):
         self.ser = ser
         self.err = err
         self.prt = prt
+        self.frm = frm
     
     @property
     def name(self):

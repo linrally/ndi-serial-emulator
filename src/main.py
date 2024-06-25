@@ -6,12 +6,14 @@ from crc import CRC
 from serial_manager import SerialManager
 from port_handle_manager import PortHandleManager
 from error_manager import ErrorManager
+from frame_manager import FrameManager
 import struct
 
 port_name = "/dev/cu.usbserial-AB0NSEDF"
 ser = SerialManager(port_name)
 err = ErrorManager()
 prt = PortHandleManager()
+frm = FrameManager()
 
 def parse_rx(rx_bytes): # TODO: CLEAN UP
     if not rx_bytes.endswith(b'\r'):
@@ -124,8 +126,7 @@ def SFLIST(args):
 
 def TSTART():
     # TODO: implement alt reply option
-    global isTracking 
-    isTracking = True
+    frm.isTracking = True
     ser.send_reply("OKAY", debug=True)
     return 0
 
@@ -156,7 +157,7 @@ def BX(args): # TODO: Check for isTracking and throw error
             reply_option_bytes.extend(struct.pack("<fff", Tx, Ty, Tz))
             reply_option_bytes.extend(struct.pack("<f", rms_error))
             reply_option_bytes.extend(struct.pack("<I", prt.get_port_status(value)))
-            reply_option_bytes.extend(struct.pack("<I", frame_number))
+            reply_option_bytes.extend(struct.pack("<I", frm.frame_number))
 
         body_bytes.extend(reply_option_bytes)
 
@@ -171,8 +172,7 @@ def BX(args): # TODO: Check for isTracking and throw error
     return 0
 
 def TSTOP():
-    global isTracking 
-    isTracking = False
+    frm.isTracking = False
     ser.send_reply("OKAY", debug=True)
     return 0
 
@@ -253,12 +253,9 @@ def PHF(args):
     ser.send_reply("OKAY", debug=True)
     return 0
 
-isTracking = False
-start_time = time.time()
-frame_number = 0
-
+frm.start()
 while True:
-    frame_number = int((time.time() - start_time) * 60)
+    frm.update()
 
     rx_bytes = ser.read_data()
 
