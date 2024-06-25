@@ -5,17 +5,13 @@ from config import *
 from crc import CRC
 from serial_manager import SerialManager
 from port_handle_manager import PortHandleManager
+from error_manager import ErrorManager
 import struct
 
 port_name = "/dev/cu.usbserial-AB0NSEDF"
-serial_manager = SerialManager(port_name)
-
-ErrorCode = 0 # TODO: Implement error handling
-
-def set_error(errnum):
-    global ErrorCode 
-    ErrorCode = errnum
-    return errnum; 
+ser = SerialManager(port_name)
+err = ErrorManager()
+prt = PortHandleManager()
 
 def parse_rx(rx_bytes): # TODO: CLEAN UP
     if not rx_bytes.endswith(b'\r'):
@@ -46,100 +42,100 @@ def parse_rx(rx_bytes): # TODO: CLEAN UP
     return command, args, rx_crc_int
 
 def RESET():
-    serial_manager.reset()
-    serial_manager.send_reply("RESET", debug=True)
+    ser.reset()
+    ser.send_reply("RESET", debug=True)
     return 0
 
 def INIT():
-    serial_manager.send_reply("OKAY", debug=True)
+    ser.send_reply("OKAY", debug=True)
     return 0
 
 def VER():
-    serial_manager.send_reply(VER_STR_CUSTOM, debug=True)
+    ser.send_reply(VER_STR_CUSTOM, debug=True)
     return 0
 
-def COMM(command):
+def COMM(args):
     CONVERT_BAUD = [9600, 14400, 19200, 38400, 57600, 115200, 921600, 1228739]
     newspeed = 9600
     newdps = "8N1"
     newhand = 0 # Handshaking parsed, but not implemented
 
-    serial_manager.send_reply("OKAY", debug=True) # TODO: Error should be returned before the baud change
+    ser.send_reply("OKAY", debug=True) # TODO: Error should be returned before the baud change
     time.sleep(0.05) # Delay to allow buffer to clear before changing baud rate
 
-    if (command[5] >= '0' and command[5] <= '7') or command[5] == 'A':
-      if command[5] != 'A':
-        newspeed = CONVERT_BAUD[int(command[5])]
+    if (args[0] >= '0' and args[0] <= '7') or args[0] == 'A':
+      if args[0] != 'A':
+        newspeed = CONVERT_BAUD[int(args[0])]
       else:
         newspeed = 230400
-    if command[6] == '1':
+    if args[1] == '1':
       newdps[0] = '7'
-    if command[7] == '1':
+    if args[2] == '1':
       newdps[1] = 'O'
-    elif command[7] == '2':
+    elif args[2] == '2':
       newdps[1] = 'E'
-    if command[8] == '1':
+    if args[3] == '1':
       newdps[2] = '2'
-    if command[9] == '1':
+    if args[4] == '1':
       newhand = 1
     
     try:
-        serial_manager.ser.baudrate = newspeed
+        ser.ser.baudrate = newspeed
         
         if newdps[1] == "N":
-           serial_manager.ser.parity = serial.PARITY_NONE
+           ser.ser.parity = serial.PARITY_NONE
         elif newdps[1] == "O":
-           serial_manager.ser.parity = serial.PARITY_ODD
+           ser.ser.parity = serial.PARITY_ODD
         elif newdps[1] == "E":
-           serial_manager.ser.parity = serial.PARITY_EVEN
+           ser.ser.parity = serial.PARITY_EVEN
         
         if newdps[0] == '7':
-            serial_manager.ser.bytesize = serial.SEVENBITS
+            ser.ser.bytesize = serial.SEVENBITS
         elif newdps[0] == '8':
-            serial_manager.ser.bytesize = serial.EIGHTBITS
+            ser.ser.bytesize = serial.EIGHTBITS
 
         if newdps[2] == '1':
-            serial_manager.ser.stopbits = serial.STOPBITS_ONE
+            ser.ser.stopbits = serial.STOPBITS_ONE
         elif newdps[2] == '2':
-            serial_manager.ser.stopbits = serial.STOPBITS_TWO
+            ser.ser.stopbits = serial.STOPBITS_TWO
 
         return 0
     except:
-        set_error(NDI_BAD_COMM)
+        err.set_error(NDI_BAD_COMM)
         return -1
 
 def APIREV():
-    serial_manager.send_reply(APIREV_STR, debug=True)
+    ser.send_reply(APIREV_STR, debug=True)
     return 0    
 
-def GET(key):
-    matching_attrs = [line for line in GET_ATTRS.split("\n") if re.search(key, line.split("=")[0]) is not None]
+def GET(args):
+    matching_attrs = [line for line in GET_ATTRS.split("\n") if re.search(args, line.split("=")[0]) is not None]
     if len(matching_attrs) == 0:
-        set_error(NDI_NO_USER_PARAM)
+        err.set_error(NDI_NO_USER_PARAM)
         return -1
-    serial_manager.send_reply("\n".join(matching_attrs), debug=True)
+    ser.send_reply("\n".join(matching_attrs), debug=True)
     return 0
 
 def SFLIST(args): 
     reply_option = int(args[0:2], 16)
     if reply_option == 0x02:
-        serial_manager.send_reply("6", debug=True)
+        ser.send_reply("6", debug=True)
     return 0
 
 def TSTART():
     # TODO: implement alt reply option
     global isTracking 
     isTracking = True
-    serial_manager.send_reply("OKAY", debug=True)
+    ser.send_reply("OKAY", debug=True)
     return 0
 
-def BX(command): # TODO: Check for isTracking and throw error
-    reply_option = int(command[3:7], 16) if len(command) >= 7 else NDI_XFORMS_AND_STATUS
+def BX(args): # TODO: Check for isTracking and throw error
+    reply_option = int(args[0:4], 16) if len(args) >= 7 else NDI_XFORMS_AND_STATUS
 
     body_bytes = bytearray()
-    body_bytes.extend(struct.pack("<B", len(port_handle_manager.port_handles)))
+    body_bytes.extend(struct.pack("<B", len(prt.port_handles)))
     
-    for key, value in port_handle_manager.port_handles.items():        
+    for key, value in prt.port_handles.items():        
         body_bytes.extend(struct.pack("<b", key))
 
         # handle status
@@ -159,7 +155,7 @@ def BX(command): # TODO: Check for isTracking and throw error
             reply_option_bytes.extend(struct.pack("<ffff", Qo, Qx, Qy, Qz))
             reply_option_bytes.extend(struct.pack("<fff", Tx, Ty, Tz))
             reply_option_bytes.extend(struct.pack("<f", rms_error))
-            reply_option_bytes.extend(struct.pack("<I", get_port_status(value)))
+            reply_option_bytes.extend(struct.pack("<I", prt.get_port_status(value)))
             reply_option_bytes.extend(struct.pack("<I", frame_number))
 
         body_bytes.extend(reply_option_bytes)
@@ -170,113 +166,101 @@ def BX(command): # TODO: Check for isTracking and throw error
     header_bytes.extend(struct.pack("<H", len(body_bytes))) # reply length
 
     reply = header_bytes + struct.pack("<H", CRC.calc_crc16_int(header_bytes)) + body_bytes + struct.pack("<H", CRC.calc_crc16_int(body_bytes))
-    serial_manager.send_reply(reply, debug=True, append_crc=False, append_cr=False, binary=True)
+    ser.send_reply(reply, debug=True, append_crc=False, append_cr=False, binary=True)
 
     return 0
 
 def TSTOP():
     global isTracking 
     isTracking = False
-    serial_manager.send_reply("OKAY", debug=True)
+    ser.send_reply("OKAY", debug=True)
     return 0
 
-def get_port_status(handle):
-    bits = 0
-    if handle.get("occupied"):
-        bits |= 1 
-    if handle.get("initialized"):
-        bits |= 1 << 4
-    if handle.get("enabled"):
-        bits |= 1 << 5
-    return bits
+def PHRQ(args):
+    device = args[0:8]
+    system_type = args[8]
+    tool_type = args[9]
+    port_number = args[10:12]
+    reserved =args[12:14]
 
-def PHRQ(command):
-    device = command[5:13]
-    system_type = command[13]
-    tool_type = command[14]
-    port_number = command[15:17]
-    reserved =command[17:19]
-
-    port_handle = port_handle_manager.create_handle()
-    serial_manager.send_reply(f"{port_handle:02X}", debug=True)
+    port_handle = prt.create_handle()
+    ser.send_reply(f"{port_handle:02X}", debug=True)
 
     return 0
 
-def PHSR(command): 
-    reply_option = int(command[5:7], 16)
+def PHSR(args): 
+    reply_option = int(args[0:2], 16)
 
     filtered_handles = {}
     if reply_option == NDI_UNINITIALIZED_HANDLES:
         filtered_handles = {
             key: value 
-            for key, value in port_handle_manager.port_handles.items() 
+            for key, value in prt.port_handles.items() 
             if value.get("occupied") and not (value.get("initialized") or value.get("enabled"))
         }
     elif reply_option == NDI_UNENABLED_HANDLES:
         filtered_handles = {
             key: value 
-            for key, value in port_handle_manager.port_handles.items() 
+            for key, value in prt.port_handles.items() 
             if value.get("occupied") and value.get("initialized") and not value.get("enabled")
         }
     elif reply_option == NDI_ENABLED_HANDLES:
         filtered_handles = {
             key: value 
-            for key, value in port_handle_manager.port_handles.items() 
+            for key, value in prt.port_handles.items() 
             if value.get("enabled")
         }
         
     reply = f"{len(filtered_handles):02X}"
     for key, value in filtered_handles.items():
-       reply += f"{key:02X}{get_port_status(value):03X}"
+       reply += f"{key:02X}{prt.get_port_status(value):03X}"
 
-    serial_manager.send_reply(reply, debug=True)
-
-    return 0
-
-def PVWR(command):
-    port_handle = int(command[5:7], 16)
-    address = int(command[7:11], 16)
-    data = bytearray.fromhex(command[11:11+128])
-    port_handle_manager.write_to_rom(port_handle, address, data)
-    serial_manager.send_reply("OKAY", debug=True)
-    return 0
-
-def PINIT(command):
-    port_handle = int(command[6:8], 16)
-    port_handle_manager.initialize_handle(port_handle)
-    serial_manager.send_reply("OKAY", debug=True)
+    ser.send_reply(reply, debug=True)
 
     return 0
 
-def PENA(command):
-    port_handle = int(command[5:7], 16)
-    tracking_priority = command[7]
-    port_handle_manager.enable_handle(port_handle)
-    serial_manager.send_reply("OKAY", debug=True)
+def PVWR(args):
+    port_handle = int(args[0:2], 16)
+    address = int(args[2:6], 16)
+    data = bytearray.fromhex(args[6:6+128])
+    prt.write_to_rom(port_handle, address, data)
+    ser.send_reply("OKAY", debug=True)
     return 0
 
-def PDIS(command):
-    port_handle = int(command[5:7], 16)
-    port_handle_manager.disable_handle(port_handle)
-    serial_manager.send_reply("OKAY", debug=True)
+def PINIT(args):
+    port_handle = int(args[0:2], 16)
+    prt.initialize_handle(port_handle)
+    ser.send_reply("OKAY", debug=True)
+
     return 0
 
-def PHF(command):
-    port_handle = int(command[4:6], 16)
-    port_handle_manager.delete_handle(port_handle)
-    serial_manager.send_reply("OKAY", debug=True)
+def PENA(args):
+    port_handle = int(args[0:2], 16)
+    tracking_priority = args[2]
+    prt.enable_handle(port_handle)
+    ser.send_reply("OKAY", debug=True)
+    return 0
+
+def PDIS(args):
+    port_handle = int(args[0:2], 16)
+    prt.disable_handle(port_handle)
+    ser.send_reply("OKAY", debug=True)
+    return 0
+
+def PHF(args):
+    port_handle = int(args[0:2], 16)
+    prt.delete_handle(port_handle)
+    ser.send_reply("OKAY", debug=True)
     return 0
 
 isTracking = False
 start_time = time.time()
 frame_number = 0
 
-port_handle_manager = PortHandleManager() # needs some work
-
 while True:
     frame_number = int((time.time() - start_time) * 60)
 
-    rx_bytes = serial_manager.read_data()
+    rx_bytes = ser.read_data()
 
     if rx_bytes.endswith(b'\0'):
         RESET()
@@ -289,7 +273,7 @@ while True:
         elif command == "VER":
             VER()
         elif command == "COMM":
-            COMM(rx_bytes.decode()) # TODO: make consistent with args?
+            COMM(args)
         elif command == "APIREV":
             APIREV()
         elif command == "GET":
@@ -299,23 +283,23 @@ while True:
         elif command == "TSTART":
             TSTART()
         elif command == "BX":
-            BX(rx_bytes.decode()) # TODO: make consistent with args?
+            BX(args)
         elif command == "TSTOP":
             TSTOP()
         elif command == "PHRQ":
-            PHRQ(rx_bytes.decode()) # TODO: make consistent with args?
+            PHRQ(args)
         elif command == "PHSR":
-            PHSR(rx_bytes.decode()) # TODO: make consistent with args?
+            PHSR(args)
         elif command == "PVWR":
-            PVWR(rx_bytes.decode()) # TODO: make consistent with args?
+            PVWR(args)
         elif command == "PENA":
-            PENA(rx_bytes.decode()) # TODO: make consistent with args?
+            PENA(args)
         elif command == "PDIS":
-            PDIS(rx_bytes.decode()) # TODO: make consistent with args?
+            PDIS(args)
         elif command == "PINIT":
-            PINIT(rx_bytes.decode()) # TODO: make consistent with args?
+            PINIT(args)
         elif command == "PHF":
-            PHF(rx_bytes.decode()) # TODO: make consistent with args?
+            PHF(args)
         else:
-            set_error(NDI_INVALID)
-            serial_manager.send_reply(f"ERROR:{ErrorCode}", debug=True)
+            err.set_error(NDI_INVALID)
+            ser.send_reply(f"ERROR:{err.ErrorCode}", debug=True)
