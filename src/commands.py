@@ -7,33 +7,29 @@ import re
 import struct
 
 class RESETCommand(BaseCommand):
-    @property
-    def name(self): return "RESET"
-    
+    name = "RESET"
+
     def execute(self, args):
         self.ser.reset()
         self.ser.send_reply("RESET", debug=True)
         return 0
 
 class INITCommand(BaseCommand):
-    @property
-    def name(self): return "INIT"
+    name = "INIT"
     
     def execute(self, args):
         self.ser.send_reply("OKAY", debug=True)
         return 0
     
 class VERCommand(BaseCommand):
-    @property
-    def name(self): return "VER"
+    name = "VER"
 
     def execute(self, args):
         self.ser.send_reply(VER_STR_CUSTOM, debug=True)
         return 0
 
 class COMMCommand(BaseCommand):
-    @property
-    def name(self): return "COMM"
+    name = "COMM"
 
     def execute(self, args):
         CONVERT_BAUD = [9600, 14400, 19200, 38400, 57600, 115200, 921600, 1228739]
@@ -86,16 +82,14 @@ class COMMCommand(BaseCommand):
             return -1
         
 class APIREVCommand(BaseCommand):
-    @property
-    def name(self): return "APIREV"
+    name = "APIREV"
 
     def execute(self, args):
         self.ser.send_reply(APIREV_STR, debug=True)
         return 0
 
 class GETCommand(BaseCommand):
-    @property
-    def name(self): return "GET"
+    name = "GET"
 
     def execute(self, args):
         matching_attrs = [line for line in GET_ATTRS.split("\n") if re.search(args, line.split("=")[0]) is not None]
@@ -106,8 +100,7 @@ class GETCommand(BaseCommand):
         return 0
 
 class SFLISTCommand(BaseCommand):
-    @property
-    def name(self): return "SFLIST"
+    name = "SFLIST"
 
     def execute(self, args):
         reply_option = int(args[0:2], 16)
@@ -116,8 +109,7 @@ class SFLISTCommand(BaseCommand):
         return 0
 
 class TSTARTCommand(BaseCommand):
-    @property
-    def name(self): return "TSTART"
+    name = "TSTART"
 
     def execute(self, args):
         # TODO: implement alt reply option
@@ -126,8 +118,7 @@ class TSTARTCommand(BaseCommand):
         return 0
 
 class TSTOPCommand(BaseCommand):
-    @property
-    def name(self): return "TSTOP"
+    name = "TSTOP"
 
     def execute(self, args):
         self.frm.isTracking = True
@@ -135,8 +126,7 @@ class TSTOPCommand(BaseCommand):
         return 0
 
 class BXCommand(BaseCommand): 
-    @property
-    def name(self): return "BX"
+    name = "BX"
 
     def execute(self, args): 
         reply_option = int(args[0:4], 16) if len(args) >= 7 else NDI_XFORMS_AND_STATUS
@@ -181,8 +171,7 @@ class BXCommand(BaseCommand):
         return 0
 
 class PHRQCommand(BaseCommand):
-    @property
-    def name(self): return "PHRQ"
+    name = "PHRQ"
 
     def execute(self, args):
         device = args[0:8]
@@ -197,8 +186,7 @@ class PHRQCommand(BaseCommand):
         return 0
 
 class PHSRCommand(BaseCommand):
-    @property
-    def name(self): return "PHSR"
+    name = "PHSR"
 
     def execute(self, args):
         reply_option = int(args[0:2], 16)
@@ -232,8 +220,7 @@ class PHSRCommand(BaseCommand):
         return 0
     
 class PVWRCommand(BaseCommand):
-    @property
-    def name(self): return "PVWR"
+    name = "PVWR"
 
     def execute(self, args):
         port_handle = int(args[0:2], 16)
@@ -244,8 +231,7 @@ class PVWRCommand(BaseCommand):
         return 0
     
 class PINITCommand(BaseCommand):
-    @property
-    def name(self): return "PINIT"
+    name = "PINIT"
 
     def execute(self, args):
         port_handle = int(args[0:2], 16)
@@ -254,8 +240,7 @@ class PINITCommand(BaseCommand):
         return 0
 
 class PENACommand(BaseCommand):
-    @property
-    def name(self): return "PENA"
+    name = "PENA"
 
     def execute(self, args):
         port_handle = int(args[0:2], 16)
@@ -265,8 +250,7 @@ class PENACommand(BaseCommand):
         return 0
     
 class PDISCommand(BaseCommand):
-    @property
-    def name(self): return "PDIS"
+    name = "PDIS"
 
     def execute(self, args):
         port_handle = int(args[0:2], 16)
@@ -275,8 +259,7 @@ class PDISCommand(BaseCommand):
         return 0
 
 class PHFCommand(BaseCommand):
-    @property
-    def name(self): return "PHF"
+    name = "PHF"
 
     def execute(self, args):
         port_handle = int(args[0:2], 16)

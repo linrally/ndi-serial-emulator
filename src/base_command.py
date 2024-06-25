@@ -1,4 +1,6 @@
 class BaseCommand:
+    name = None
+
     def __init__(self, ser, err, prt, frm):
         self.ser = ser
         self.err = err
