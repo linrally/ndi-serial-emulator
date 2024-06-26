@@ -1,10 +1,10 @@
 import re
 from config import *
 from crc import CRC
-from serial_manager import SerialManager
-from port_handle_manager import PortHandleManager
-from error_manager import ErrorManager
-from frame_manager import FrameManager
+from serialmanager import SerialManager
+from porthandlemanager import PortHandleManager
+from errormanager import ErrorManager
+from framemanager import FrameManager
 from commands import COMMANDS_LIST 
 
 port_name = "/dev/cu.usbserial-AB0NSEDF"

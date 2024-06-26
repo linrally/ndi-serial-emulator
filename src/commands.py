@@ -1,4 +1,4 @@
-from base_command import BaseCommand
+from basecommand import BaseCommand
 from crc import CRC
 from config import *
 import time
