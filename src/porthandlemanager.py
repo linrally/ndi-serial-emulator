@@ -10,7 +10,12 @@ class PortHandleManager:
             'occupied': False,
             'initialized': False,
             'enabled': False,
-            'rom': bytearray(b'\x00' * 1024)  # 1 kB ROM
+            'rom': bytearray(b'\x00' * 1024),  # 1 kB ROM
+            'pose': {
+                'quaternion' : [1, 0, 0, 0],
+                'transform' : [0, 0, 0],
+                'rms_error' : 0,
+            }
         }
         return i
     
@@ -49,7 +54,7 @@ class PortHandleManager:
             return True
         return False
     
-    def get_port_status(self, handle):
+    def get_port_status(self, handle): # change to be id
         bits = 0
         if handle.get("occupied"):
             bits |= 1
@@ -58,3 +63,10 @@ class PortHandleManager:
         if handle.get("enabled"):
             bits |= 1 << 5
         return bits
+    
+    def load_transform(self, handle_id, pose):
+        handle = self.port_handles.get(handle_id)
+        if handle:
+            handle['pose'] = pose
+            return True
+        return False

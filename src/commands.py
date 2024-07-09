@@ -35,10 +35,7 @@ class COMMCommand(BaseCommand):
         CONVERT_BAUD = [9600, 14400, 19200, 38400, 57600, 115200, 921600, 1228739]
         newspeed = 9600
         newdps = "8N1"
-        newhand = 0 # Handshaking parsed, but not implemented
-
-        self.ser.send_reply("OKAY", debug=True) # TODO: Error should be returned before the baud change
-        time.sleep(0.05) # Delay to allow buffer to clear before changing baud rate
+        newhand = 0 
 
         if (args[0] >= '0' and args[0] <= '7') or args[0] == 'A':
             if args[0] != 'A':
@@ -56,6 +53,10 @@ class COMMCommand(BaseCommand):
         if args[4] == '1':
             newhand = 1
     
+        self.ser.send_reply("OKAY", debug=True) # TODO: Error should be returned before the baud change
+
+        time.sleep(0.05) # Delay to allow buffer to clear before changing baud rate
+
         try:
             self.ser.ser.baudrate = newspeed
         
@@ -78,7 +79,7 @@ class COMMCommand(BaseCommand):
 
             return 0
         except:
-            self.err.set_error(NDI_BAD_COMM)
+            self.err.set(NDI_BAD_COMM)
             return -1
         
 class APIREVCommand(BaseCommand):
@@ -94,7 +95,7 @@ class GETCommand(BaseCommand):
     def execute(self, args):
         matching_attrs = [line for line in GET_ATTRS.split("\n") if re.search(args, line.split("=")[0]) is not None]
         if len(matching_attrs) == 0:
-            self.err.set_error(NDI_NO_USER_PARAM)
+            self.err.set(NDI_NO_USER_PARAM)
             return -1
         self.ser.send_reply("\n".join(matching_attrs), debug=True)
         return 0
@@ -112,7 +113,9 @@ class TSTARTCommand(BaseCommand):
     name = "TSTART"
 
     def execute(self, args):
-        # TODO: implement alt reply option
+        reply_option = int(args[0:2], 16)
+        if reply_option == 0x80:
+            self.frm.reset()
         self.frm.isTracking = True
         self.ser.send_reply("OKAY", debug=True)
         return 0
@@ -135,13 +138,13 @@ class BXCommand(BaseCommand):
         body_bytes = bytearray()
         body_bytes.extend(struct.pack("<B", len(self.prt.port_handles)))
         
-        for key, value in self.prt.port_handles.items(): # rename key/value    
+        for key, value in self.prt.port_handles.items():
             body_bytes.extend(struct.pack("<b", key))
 
             # handle status
-            if value['enabled']:  # valid
+            if value['enabled']:
                 body_bytes.extend(struct.pack("<b", 1))
-            else: # disabled
+            else:
                 body_bytes.extend(struct.pack("<b", 4))
                 continue
             

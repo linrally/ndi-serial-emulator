@@ -5,6 +5,9 @@ class FrameManager:
 
     def start(self):
         self.isTracking = False
+        self.reset()
+    
+    def reset(self):
         self.start_time = time.time()
         self.frame_number = 0
     

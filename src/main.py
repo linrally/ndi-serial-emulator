@@ -5,6 +5,7 @@ from serialmanager import SerialManager
 from porthandlemanager import PortHandleManager
 from errormanager import ErrorManager
 from framemanager import FrameManager
+from poseloader import PoseLoader
 from commands import COMMANDS_LIST 
 
 port_name = "/dev/cu.usbserial-AB0NSEDF"
@@ -45,9 +46,33 @@ def parse_rx(rx_bytes):
 
     return command, args, rx_crc_int
 
+landmarks = [
+    {
+        'frame_number': 0,
+        'quaternion' : [1, 0, 0, 0],
+        'transform' : [0, 0, 0],
+        'rms_error' : 0,
+    },
+    {
+        'frame_number': 120,
+        'quaternion' : [1, 0, 0, 0],
+        'transform' : [50, 0, 0],
+        'rms_error' : 0,
+    },
+    {
+        'frame_number': 240,
+        'quaternion' : [1, 0, 0, 0],
+        'transform' : [50, 50, 50],
+        'rms_error' : 0,
+    }
+]
+pl = PoseLoader()
+pl.generate(landmarks=landmarks)
+
 frm.start()
 while True:
     frm.update()
+    prt.load_transform(0x00, pl.get_transform(frm.frame_number))
     rx_bytes = ser.read_data()
 
     if rx_bytes.endswith(b'\0'):
@@ -59,5 +84,5 @@ while True:
         if command in COMMANDS:
             COMMANDS[command].execute(args)
         else:
-            err.set_error(NDI_INVALID)
+            err.set(NDI_INVALID)
             ser.send_reply(f"ERROR:{err.ErrorCode}", debug=True)
