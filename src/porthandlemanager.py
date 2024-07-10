@@ -12,7 +12,7 @@ class PortHandleManager:
             'enabled': False,
             'rom': bytearray(b'\x00' * 1024),  # 1 kB ROM
             'pose': {
-                'quaternion' : [1, 0, 0, 0],
+                'quaternion' : [0, 0, 0, 1],
                 'transform' : [0, 0, 0],
                 'rms_error' : 0,
             }

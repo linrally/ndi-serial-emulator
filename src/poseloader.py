@@ -3,10 +3,9 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 class PoseLoader:
-    def __init__(self):
+    def __init__(self, landmarks):
         self.poses = []
 
-    def generate(self, landmarks):
         landmarks = sorted(landmarks, key=lambda lm: lm['frame_number'])
         frame_numbers = [lm['frame_number'] for lm in landmarks]
         positions = np.array([lm['transform'] for lm in landmarks])
@@ -20,9 +19,9 @@ class PoseLoader:
             self.poses.append({
                 'frame_number': fnum,
                 'quaternion': quaternion,
-                'position': transform,
+                'transform': transform,
                 'rms_error': 0,
-            })
+            })        
 
     def get_transform(self, frame_number):
         pose = self.poses[frame_number]
@@ -30,7 +29,7 @@ class PoseLoader:
             return pose
         else:
             return {
-                'quaternion' : [1, 0, 0, 0],
+                'quaternion' : [0, 0, 0, 1],
                 'transform' : [0, 0, 0],
                 'rms_error' : 0,
             }

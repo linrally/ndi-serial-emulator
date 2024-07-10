@@ -50,29 +50,28 @@ landmarks = [
     {
         'frame_number': 0,
         'quaternion' : [1, 0, 0, 0],
-        'transform' : [0, 0, 0],
+        'transform' : [0, 0, -750],
         'rms_error' : 0,
     },
     {
-        'frame_number': 120,
+        'frame_number': 450,
         'quaternion' : [1, 0, 0, 0],
-        'transform' : [50, 0, 0],
+        'transform' : [0, 0, -1000],
         'rms_error' : 0,
     },
     {
-        'frame_number': 240,
+        'frame_number': 900,
         'quaternion' : [1, 0, 0, 0],
-        'transform' : [50, 50, 50],
+        'transform' : [0, 0, -750],
         'rms_error' : 0,
-    }
+    },
 ]
-pl = PoseLoader()
-pl.generate(landmarks=landmarks)
+pl = PoseLoader(landmarks)
 
 frm.start()
 while True:
     frm.update()
-    prt.load_transform(0x00, pl.get_transform(frm.frame_number))
+    prt.load_transform(0x01, pl.get_transform(frm.frame_number % 900))
     rx_bytes = ser.read_data()
 
     if rx_bytes.endswith(b'\0'):

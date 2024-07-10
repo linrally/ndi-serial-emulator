@@ -113,7 +113,10 @@ class TSTARTCommand(BaseCommand):
     name = "TSTART"
 
     def execute(self, args):
-        reply_option = int(args[0:2], 16)
+        if len(args) >= 2: # TODO: Is there a better way to handle command length?
+            reply_option = int(args[0:2], 16)
+        else:   
+            reply_option = 0
         if reply_option == 0x80:
             self.frm.reset()
         self.frm.isTracking = True
@@ -151,9 +154,9 @@ class BXCommand(BaseCommand):
             reply_option_bytes = bytearray()
 
             if reply_option & NDI_XFORMS_AND_STATUS:
-                Qo, Qx, Qy, Qz = 1, 0, 0, 0 # store in port handles and grab the value
-                Tx, Ty, Tz = 0, 0, -750
-                rms_error = 0
+                Qx, Qy, Qz, Qo = value['pose']['quaternion']
+                Tx, Ty, Tz = value['pose']['transform']
+                rms_error = value['pose']['rms_error']
 
                 reply_option_bytes.extend(struct.pack("<ffff", Qo, Qx, Qy, Qz))
                 reply_option_bytes.extend(struct.pack("<fff", Tx, Ty, Tz))
