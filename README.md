@@ -25,3 +25,8 @@ socat -d -d pty,raw,echo=1 pty,raw,echo=1
 Set one end of the two-way virtual serial connection in `main.py`, and the other in `main.cpp` (or whatever other program you plan to use to issue commands to the serial emulator). If using the NDI C API code provided, build with CMAKE.
 
 Run `main.py` and `./build/main`
+
+## Future Work
+- Implement full error management in accordance with NDI API
+- Pipe output from MediaPipe (or another face tracking program) into BrainSight
+- Package into a Python library
