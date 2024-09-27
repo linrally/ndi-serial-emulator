@@ -1,6 +1,8 @@
 # NDI Polaris API Serial Emulator
 A Python emulator for serial communication with the NDI Polaris Vega optical tracker designed for the [Brain Stimulation Engineering Lab](https://sites.google.com/view/bsel/) at Duke University. Compatible with the [NDI C API](https://github.com/PlusToolkit/ndicapi/tree/master).
 
+![Demo](demo.gif)
+
 ## Usage (MacOS)
 Clone the git repository.
 ```
