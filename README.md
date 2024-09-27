@@ -9,7 +9,7 @@ Connect two ports on your machine(s) using a null modem serial cable. A successf
 - 2x Startech ICUSB2321F 1-Port USB to Serial RS232 Adapter Cable, connected to an iMac running Brainsight and a laptop running the emulator, respectively
 - Null modem RS232 female-to-female serial cable to join the two devices
 
-Specify the appropriate serial port for the emulator in `main.py`.
+Specify the appropriate serial port for the emulator in `main.py`. Run `main.py`
 
 Open Brainsight on the second machine and navigate to the Polaris Configuration window. Scan for all serial devices. The virtual emulator should appear with the serial number P6-00000 and status OK & Tracking. If you run into any issues, try resetting the device and scanning all serial ports again. 
 
