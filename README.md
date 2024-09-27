@@ -30,3 +30,4 @@ Run `main.py` and `./build/main`
 - Implement full error management in accordance with NDI API
 - Pipe output from MediaPipe (or another face tracking program) into BrainSight
 - Package into a Python library
+- Add PyLint to improve code quality
