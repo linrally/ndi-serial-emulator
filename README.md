@@ -13,7 +13,7 @@ Specify the appropriate serial port for the emulator in `main.py`. Run `main.py`
 
 Open Brainsight on the second machine and navigate to the Polaris Configuration window. Scan for all serial devices. The virtual emulator should appear with the serial number P6-00000 and status OK & Tracking. If you run into any issues, try resetting the device and scanning all serial ports again. 
 
-Upload the ROM files of trackers you wish to use. Each tracking device is assigned a port handle (more details in the NDI Polaris API). Use these port handles to assign pose time seris data within the emulator, simulating motion.
+Upload the ROM files of trackers you wish to use. Each tracking device is assigned a port handle (more details in the NDI Polaris Polaris Application Program Interface Guide). Use these port handles to assign pose time seris data within the emulator, simulating motion.
 
 ## Usage (Virtual Connection)
 Create a virtual serial port using socat.
